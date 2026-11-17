@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="The simplest arithmetic example of transposed convolution, with stride 1, no padding, and no bias.">
+  <title>Transposed Convolution — Simplest Arithmetic Example</title>
+  <style>
+    :root { color-scheme: light; --ink:#1e293b; --muted:#536477; --line:#dbe4ea; --tile:#e7eef2; --accent:#168c92; --accent-light:#98d4d0; }
+    *, *::before, *::after {box-sizing:border-box}
+    body { margin:0; padding:clamp(12px,3vw,42px); background:#f5f7fa; color:var(--ink); font: 17px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { background:white; max-width:840px; margin:0 auto; padding:clamp(22px,5.5vw,60px); border:1px solid #e5eaef; border-radius:18px; box-shadow:0 9px 34px #182f4220; }
+    p {margin:0 0 18px}
+    h2 {font-size:clamp(1.2rem, 3vw,1.45rem); line-height:1.3; letter-spacing:-.025em; margin:34px 0 12px; font-weight:750}
+    h3 {font-size:.95rem; font-weight:650; margin:0 0 14px}
+    strong {font-weight:750}
+    .intro-math {font-family:Georgia, "Times New Roman", serif; font-style:italic}
+    .math-display {display:flex; align-items:center; gap:11px; margin:14px 0 23px; padding-left:14px; font: 24px/1.15 Georgia, "Times New Roman",serif;}
+    .math-symbol {font-style:italic}
+    .math-matrix {display:inline-flex; align-items:stretch; position:relative; padding:3px 9px; vertical-align:middle; white-space:nowrap; flex:none;}
+    .math-matrix::before, .math-matrix::after {content:""; width:6px; border-top:2px solid currentColor; border-bottom:2px solid currentColor; position:absolute; top:0; bottom:0;}
+    .math-matrix::before {left:0; border-left:2px solid currentColor}
+    .math-matrix::after {right:0; border-right:2px solid currentColor}
+    .matrix-values {display:grid; grid-template-columns:repeat(var(--cols), minmax(23px, auto)); gap:3px 8px; align-items:center; justify-items:center; font:23px/1.25 Georgia,"Times New Roman",serif; }
+    .matrix-entry {min-width:20px; text-align:center;}
+    .patch-grid {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:22px 0 30px;}
+    .patch-card {border:1px solid var(--line); border-radius:12px; padding:21px 14px 18px; text-align:center; background:#fff;}
+    .tiles {display:grid; grid-template-columns:repeat(var(--cols),44px); justify-content:center; margin:auto; width:max-content; border-top:1px solid #637c87; border-left:1px solid #637c87;}
+    .tile {height:44px; display:flex; align-items:center; justify-content:center; font: 20px/1.1 Georgia,"Times New Roman",serif; border-right:1px solid #637c87; border-bottom:1px solid #637c87;}
+    .tile.active {background:#9ad6d0; color:#123e45}
+    .tile.inactive {background:#eef2f4; color:#8da0aa}
+    .tiles-final .tile {background:#9ad6d0; color:#123e45; font-size:22px}
+    .tiles-final .tile.central {background:#168c92; color:white; font-weight:700}
+    .equation {display:flex; flex-direction:column; align-items:center; gap:15px; margin:22px auto 27px; padding:19px 8px; border-radius:12px; background:#f7fafb; overflow-x:auto;}
+    .equation-line {display:flex; align-items:center; justify-content:center; gap:12px; white-space:nowrap; min-width:max-content; font-family:Georgia,"Times New Roman",serif; font-size:26px;}
+    .equation-line .math-matrix {padding:3px 8px}
+    .equation-line .matrix-values {grid-template-columns:repeat(var(--cols), minmax(20px,auto)); gap:3px 6px; font-size:20px}
+    .equation-line .matrix-entry {min-width:18px}
+    .math-op {font:26px/1 Georgia,"Times New Roman",serif}
+    .final-label {font-weight:750; margin:2px 0 15px;}
+    .final-grid {margin:0 auto 26px; width:max-content; text-align:center}
+    .final-grid .tiles {grid-template-columns:repeat(3,56px)}
+    .final-grid .tile {height:56px}
+    .final-grid figcaption {margin-top:9px; font-size:14px; color:var(--muted)}
+    .centre-equation {text-align:center; font:26px/1.5 Georgia,"Times New Roman",serif; margin:16px 0 20px}
+    .takeaway {margin-top:22px}
+    .last {margin-bottom:0}
+    @media(max-width:550px) {body {padding:0; font-size:16px} main {border-radius:0; border:0; padding:24px 18px;box-shadow:none} .patch-grid {gap:10px} .patch-card {padding:17px 5px} .tiles {grid-template-columns:repeat(3,34px)} .tile {height:34px;font-size:17px} .equation {padding:17px 10px} .equation-line {gap:7px} .equation-line .matrix-values {grid-template-columns:repeat(var(--cols),minmax(15px,auto));font-size:16px;gap:2px 3px} .equation-line .matrix-entry {min-width:15px} .equation-line .math-matrix {padding:2px 6px} .math-op {font-size:19px}}
+    @media(max-width:345px) {.patch-grid {grid-template-columns:1fr}}
+    @media print {body {padding:0;background:#fff} main {border:0;box-shadow:none;border-radius:0;max-width:none;padding:0} .patch-card {break-inside:avoid} h2 {break-after:avoid} .equation, .final-grid {break-inside:avoid}}
+  </style>
+</head>
+<body>
+<main>
+  <p>Take a <span class="intro-math">2 × 2</span> input and a <span class="intro-math">2 × 2</span> filter.</p>
+  <p><strong>Input:</strong></p>
+  <div class="math-display"><span class="math-symbol">I</span><span>=</span><span class="math-matrix" role="img" aria-label="Input matrix: 1 2; 3 4"><span class="matrix-values" style="--cols:2"><span class="matrix-entry">1</span><span class="matrix-entry">2</span><span class="matrix-entry">3</span><span class="matrix-entry">4</span></span></span></div>
+  <p><strong>Filter:</strong></p>
+  <div class="math-display"><span class="math-symbol">K</span><span>=</span><span class="math-matrix" role="img" aria-label="Filter matrix: 1 1; 1 1"><span class="matrix-values" style="--cols:2"><span class="matrix-entry">1</span><span class="matrix-entry">1</span><span class="matrix-entry">1</span><span class="matrix-entry">1</span></span></span></div>
+
+  <h2>Step 1: Each input value produces a 2×2 patch</h2>
+  <p>Multiply each input value by the entire filter, placing the resulting patch at the corresponding position in the larger output grid.</p>
+  <div class="patch-grid"><article class="patch-card"><h3>Input value: 1</h3><div class="tiles " style="--cols:3" role="img" aria-label="1 1 0; 1 1 0; 0 0 0"><span class="tile active" aria-label="row 1, column 1: 1">1</span><span class="tile active" aria-label="row 1, column 2: 1">1</span><span class="tile inactive" aria-label="row 1, column 3: 0">0</span><span class="tile active" aria-label="row 2, column 1: 1">1</span><span class="tile active" aria-label="row 2, column 2: 1">1</span><span class="tile inactive" aria-label="row 2, column 3: 0">0</span><span class="tile inactive" aria-label="row 3, column 1: 0">0</span><span class="tile inactive" aria-label="row 3, column 2: 0">0</span><span class="tile inactive" aria-label="row 3, column 3: 0">0</span></div></article>
+<article class="patch-card"><h3>Input value: 2</h3><div class="tiles " style="--cols:3" role="img" aria-label="0 2 2; 0 2 2; 0 0 0"><span class="tile inactive" aria-label="row 1, column 1: 0">0</span><span class="tile active" aria-label="row 1, column 2: 2">2</span><span class="tile active" aria-label="row 1, column 3: 2">2</span><span class="tile inactive" aria-label="row 2, column 1: 0">0</span><span class="tile active" aria-label="row 2, column 2: 2">2</span><span class="tile active" aria-label="row 2, column 3: 2">2</span><span class="tile inactive" aria-label="row 3, column 1: 0">0</span><span class="tile inactive" aria-label="row 3, column 2: 0">0</span><span class="tile inactive" aria-label="row 3, column 3: 0">0</span></div></article>
+<article class="patch-card"><h3>Input value: 3</h3><div class="tiles " style="--cols:3" role="img" aria-label="0 0 0; 3 3 0; 3 3 0"><span class="tile inactive" aria-label="row 1, column 1: 0">0</span><span class="tile inactive" aria-label="row 1, column 2: 0">0</span><span class="tile inactive" aria-label="row 1, column 3: 0">0</span><span class="tile active" aria-label="row 2, column 1: 3">3</span><span class="tile active" aria-label="row 2, column 2: 3">3</span><span class="tile inactive" aria-label="row 2, column 3: 0">0</span><span class="tile active" aria-label="row 3, column 1: 3">3</span><span class="tile active" aria-label="row 3, column 2: 3">3</span><span class="tile inactive" aria-label="row 3, column 3: 0">0</span></div></article>
+<article class="patch-card"><h3>Input value: 4</h3><div class="tiles " style="--cols:3" role="img" aria-label="0 0 0; 0 4 4; 0 4 4"><span class="tile inactive" aria-label="row 1, column 1: 0">0</span><span class="tile inactive" aria-label="row 1, column 2: 0">0</span><span class="tile inactive" aria-label="row 1, column 3: 0">0</span><span class="tile inactive" aria-label="row 2, column 1: 0">0</span><span class="tile active" aria-label="row 2, column 2: 4">4</span><span class="tile active" aria-label="row 2, column 3: 4">4</span><span class="tile inactive" aria-label="row 3, column 1: 0">0</span><span class="tile active" aria-label="row 3, column 2: 4">4</span><span class="tile active" aria-label="row 3, column 3: 4">4</span></div></article></div>
+
+  <h2>Step 2: Add all four contributions</h2>
+  <div class="equation" role="group" aria-label="O equals the sum of the four 3 by 3 contribution matrices">
+    <div class="equation-line"><span class="math-symbol">O</span><span class="math-op">=</span><span class="math-matrix" role="img" aria-label="matrix 1 1 0, 1 1 0, 0 0 0"><span class="matrix-values" style="--cols:3"><span class="matrix-entry">1</span><span class="matrix-entry">1</span><span class="matrix-entry">0</span><span class="matrix-entry">1</span><span class="matrix-entry">1</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span></span></span><span class="math-op">+</span><span class="math-matrix" role="img" aria-label="matrix 0 2 2, 0 2 2, 0 0 0"><span class="matrix-values" style="--cols:3"><span class="matrix-entry">0</span><span class="matrix-entry">2</span><span class="matrix-entry">2</span><span class="matrix-entry">0</span><span class="matrix-entry">2</span><span class="matrix-entry">2</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span></span></span></div>
+    <div class="equation-line"><span class="math-op">+</span><span class="math-matrix" role="img" aria-label="matrix 0 0 0, 3 3 0, 3 3 0"><span class="matrix-values" style="--cols:3"><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">3</span><span class="matrix-entry">3</span><span class="matrix-entry">0</span><span class="matrix-entry">3</span><span class="matrix-entry">3</span><span class="matrix-entry">0</span></span></span><span class="math-op">+</span><span class="math-matrix" role="img" aria-label="matrix 0 0 0, 0 4 4, 0 4 4"><span class="matrix-values" style="--cols:3"><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">0</span><span class="matrix-entry">4</span><span class="matrix-entry">4</span><span class="matrix-entry">0</span><span class="matrix-entry">4</span><span class="matrix-entry">4</span></span></span></div>
+  </div>
+
+  <p class="final-label">Final output:</p>
+  <figure class="final-grid"><div class="tiles tiles-final" style="--cols:3" role="img" aria-label="1 3 2; 4 10 6; 3 7 4"><span class="tile active" aria-label="row 1, column 1: 1">1</span><span class="tile active" aria-label="row 1, column 2: 3">3</span><span class="tile active" aria-label="row 1, column 3: 2">2</span><span class="tile active" aria-label="row 2, column 1: 4">4</span><span class="tile central" aria-label="row 2, column 2: 10">10</span><span class="tile active" aria-label="row 2, column 3: 6">6</span><span class="tile active" aria-label="row 3, column 1: 3">3</span><span class="tile active" aria-label="row 3, column 2: 7">7</span><span class="tile active" aria-label="row 3, column 3: 4">4</span></div><figcaption>3 × 3 output</figcaption></figure>
+
+  <p class="takeaway"><strong>Transposed convolution:</strong> each input value contributes a weighted patch to the output, and overlapping contributions are summed.</p>
+  <p class="last">The <span class="intro-math">2 × 2</span> input has become a <span class="intro-math">3 × 3</span> output.</p>
+</main>
+</body>
+</html>
